@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "devDependencies": {
+    "appcenter-cli": "^1.0.6",
     "babel-preset-react-native-stage-0": "^1.0.1",
     "jest-expo": "23.0.0",
     "react-test-renderer": "16.0.0"
