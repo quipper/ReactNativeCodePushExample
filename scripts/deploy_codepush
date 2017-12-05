@@ -1,0 +1,20 @@
+#!/bin/bash -ex
+
+if [ $# -ne 1 ]; then
+  echo 'Error: Missing argument' 1>&2
+  echo "Usage: ${0} DEPLOYMENT_NAME" 1>&2
+  exit 1
+fi
+
+if [ ! -f "TARGET_BINARY_VERSION" ]; then
+  echo 'The file TARGET_BINARY_VERSION is not found' 1>&2
+  echo 'The file is used for specifying `--target-binary-version` of `appcenter codepush release-react` command'
+  exit 1
+fi
+
+appcenter codepush release-react \
+  -a Quipper/ReactNativeCodePushExample \
+  --deployment-name "${1}" \
+  --target-binary-version "`cat TARGET_BINARY_VERSION | egrep -v '^#'`"
+
+exit $?

@@ -1,0 +1,5 @@
+# The content of this file is specified as `--target-binary-version` in the deploy script `./scripts/deploy_codepush`.
+# When you introduced a new native module, please release the binary first and update this file.
+# You can specify it by following Semantic Versioning.
+# ref: https://docs.microsoft.com/en-us/appcenter/distribution/codepush/cli#target-binary-version-parameter
+*
