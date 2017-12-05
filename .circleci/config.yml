@@ -1,0 +1,116 @@
+version: 2
+jobs:
+  bundle_dependencies:
+    docker:
+      - image: circleci/node:8.9.1
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-{{ arch }}-{{ .Branch }}-{{ checksum "yarn.lock" }}
+            - v1-{{ arch }}
+      - run:
+          name: System information
+          command: |
+            echo "Node $(node -v)"
+            echo "npm $(node -v)"
+            echo "yarn $(yarn -version)"
+      - run:
+          name: Install dependencies
+          command: 'yarn install'
+      - save_cache:
+          key: v1-{{ arch }}-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          paths:
+            - ./node_modules
+            - ~/.cache/yarn
+
+  test:
+    docker:
+      - image: circleci/node:8.9.1
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-{{ arch }}-{{ .Branch }}-{{ checksum "yarn.lock" }}
+            - v1-{{ arch }}
+      - run:
+          name: Install dependencies
+          command: 'yarn install'
+      - run:
+          name: Test
+          command: 'yarn test'
+
+  deploy_to_codepush_develop:
+    docker:
+      - image: circleci/node:8.9.1
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-{{ arch }}-{{ .Branch }}-{{ checksum "yarn.lock" }}
+            - v1-{{ arch }}
+      - run:
+          name: Install dependencies
+          command: 'yarn install'
+      - run:
+          name: Deploy to CodePush
+          command: 'yarn codepush:login && yarn codepush:deploy Development'
+
+  deploy_to_codepush_release:
+    docker:
+      - image: circleci/node:8.9.1
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-{{ arch }}-{{ .Branch }}-{{ checksum "yarn.lock" }}
+            - v1-{{ arch }}
+      - run:
+          name: Install dependencies
+          command: 'yarn install'
+      - run:
+          name: Deploy to CodePush
+          command: 'yarn codepush:login && yarn codepush:deploy Release'
+
+  deploy_to_codepush_production:
+    docker:
+      - image: circleci/node:8.9.1
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-{{ arch }}-{{ .Branch }}-{{ checksum "yarn.lock" }}
+            - v1-{{ arch }}
+      - run:
+          name: Install dependencies
+          command: 'yarn install'
+      - run:
+          name: Deploy to CodePush
+          command: 'yarn codepush:login && yarn codepush:deploy Production'
+
+workflows:
+  version: 2
+  build-test-deploy:
+    jobs:
+      - bundle_dependencies
+      - test:
+          requires:
+            - bundle_dependencies
+      - deploy_to_codepush_develop:
+          requires:
+            - test
+          filters:
+            branches:
+              only: develop
+      - deploy_to_codepush_release:
+          requires:
+            - test
+          filters:
+            branches:
+              only: /^release\/codepush\/.*/
+      - deploy_to_codepush_production:
+          requires:
+            - test
+          filters:
+            branches:
+              only: 'deploy/codepush'
