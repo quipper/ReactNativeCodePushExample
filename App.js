@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import codePush from 'react-native-code-push';
 
 const styles = StyleSheet.create({
   container: {
@@ -18,4 +19,7 @@ const App = () => (
   </View>
 );
 
-export default App;
+export default codePush({
+  checkFrequency: codePush.CheckFrequency.ON_APP_RESUME,
+  updateDialog: {},
+})(App);
