@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+
+const exec = require('child_process').exec;
+const last = require('lodash').last;
+
+const cmd = './node_modules/.bin/appcenter codepush deployment history Production --app Quipper/ReactNativeCodePushExample --output json';
+exec(cmd, (err, stdout, stderr) => {
+  if (err) {
+    throw new Error(`Failed to run code-push command: ${err.message}`);
+  }
+
+  const deployments = JSON.parse(stdout);
+  const deployment = last(deployments);
+  const currentVersion = deployments.length === 0 ? 'v0' : deployment && deployment[0];
+
+  if (!currentVersion) {
+    throw new Error('Failed to retrieve the current version');
+  }
+
+  const nextVersion = `v${(parseInt(currentVersion.replace(/^v/, '')) + 1)}`;
+  const baseBranch = 'deploy/codepush';
+  const newBranch = `release/codepush/${nextVersion}`;
+  const GitHub = require('github-api');
+  const github = new GitHub({ token: process.env.GITHUB_ACCESS_TOKEN });
+  const repo = github.getRepo('quipper', 'ReactNativeCodePushExample');
+
+  repo
+    .createBranch('develop', newBranch)
+    .then(branch => {
+      repo
+        .compareBranches(baseBranch, newBranch)
+        .then(compareResult => {         
+          const pullRequestsList = buildPullRequestList(compareResult);
+          const pullRequestOptions = {
+            title: `Release ${nextVersion} to CodePush`,
+            head: newBranch,
+            base: baseBranch,
+            body: pullRequestsList,
+          };
+          repo.createPullRequest(pullRequestOptions)
+            .then(pullRequest => {
+              console.log(`Created a release pull request successfully!: ${pullRequest.data.html_url}`);
+            }).catch(err => {
+              console.error(`Failed to create a release pull request: ${err.message}`);
+              process.exit(1);
+            });
+        });
+    }).catch(err => {
+      console.error(`Failed to create a new branch: ${err.message}`);
+      process.exit(1);
+    });
+});
+
+const mergeCommitPattern = /^Merge pull request #(\d+) from.+?\n\n(.+?)$/; 
+
+function buildPullRequestList(compareResult) {
+  return compareResult
+    .data
+    .commits
+    .map(c => c.commit.message)
+    .filter(m => m.match(mergeCommitPattern))
+    .map(m => m.match(mergeCommitPattern))
+    .map(m => `* #${m[1]} ${m[2]}`)
+    .join('\n');
+}
