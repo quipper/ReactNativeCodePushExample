@@ -3,6 +3,9 @@
 # expo
 .expo/
 
+# iOS
+/ios/build
+
 # dependencies
 /node_modules
 
