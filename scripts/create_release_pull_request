@@ -24,30 +24,34 @@ exec(cmd, (err, stdout, stderr) => {
   const github = new GitHub({ token: process.env.GITHUB_ACCESS_TOKEN });
   const repo = github.getRepo('quipper', 'ReactNativeCodePushExample');
 
+  console.info(`Creating '${newBranch}' branch from '${baseBranch}' branch...`);
   repo
     .createBranch('develop', newBranch)
     .then(branch => {
-      repo
-        .compareBranches(baseBranch, newBranch)
-        .then(compareResult => {         
-          const pullRequestsList = buildPullRequestList(compareResult);
-          const pullRequestOptions = {
-            title: `Release ${nextVersion} to CodePush`,
-            head: newBranch,
-            base: baseBranch,
-            body: pullRequestsList,
-          };
-          repo.createPullRequest(pullRequestOptions)
-            .then(pullRequest => {
-              console.log(`Created a release pull request successfully!: ${pullRequest.data.html_url}`);
-            }).catch(err => {
-              console.error(`Failed to create a release pull request: ${err.message}`);
-              process.exit(1);
-            });
-        });
-    }).catch(err => {
+      console.info(`Fetching the compared result of '${newBranch}' branch with '${baseBranch}' branch...`);
+      return repo.compareBranches(baseBranch, newBranch);
+    })
+    .catch(err => {
       console.error(`Failed to create a new branch: ${err.message}`);
       process.exit(1);
+    })
+    .then(compareResult => {
+      const pullRequestsList = buildPullRequestList(compareResult);
+      const pullRequestOptions = {
+        title: `Release ${nextVersion} to CodePush`,
+        head: newBranch,
+        base: baseBranch,
+        body: pullRequestsList,
+      };
+      console.info('Creating a Release Pull Request...')
+      return repo.createPullRequest(pullRequestOptions);
+    })
+    .catch(err => {
+      console.error(`Failed to create a release pull request: ${err.message}`);
+      process.exit(1);
+    })
+    .then(pullRequest => {
+      console.log(`Created a release pull request successfully!: ${pullRequest.data.html_url}`);
     });
 });
 
